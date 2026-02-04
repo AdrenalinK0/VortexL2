@@ -6,6 +6,7 @@ Rich-based TUI with ASCII banner and menu system.
 
 import os
 import sys
+import re
 from typing import Optional, List
 
 try:
@@ -24,6 +25,40 @@ from .config import TunnelConfig, ConfigManager
 
 
 console = Console()
+
+
+def is_valid_ip(ip: str) -> bool:
+    """Validate IPv4 address format."""
+    if not ip:
+        return False
+    # Remove CIDR if present
+    ip_only = ip.split('/')[0]
+    parts = ip_only.split('.')
+    if len(parts) != 4:
+        return False
+    try:
+        for part in parts:
+            num = int(part)
+            if num < 0 or num > 255:
+                return False
+        return True
+    except ValueError:
+        return False
+
+
+def prompt_valid_ip(label: str, default: str = None, required: bool = True) -> Optional[str]:
+    """Prompt for IP address with validation."""
+    while True:
+        ip = Prompt.ask(label, default=default if default else None)
+        if not ip:
+            if required:
+                console.print("[red]This field is required[/]")
+                continue
+            return None
+        if is_valid_ip(ip):
+            return ip
+        console.print(f"[red]Invalid IP address: {ip}[/]")
+        console.print("[dim]Format: X.X.X.X (each part 0-255)[/]")
 
 
 ASCII_BANNER = r"""
@@ -224,50 +259,56 @@ def prompt_tunnel_config(config: TunnelConfig, side: str) -> bool:
         default_session_id = 20
         default_peer_session_id = 10
     
-    # Local IP
+    # Local IP (with validation)
     default_local = config.local_ip or ""
-    local_ip = Prompt.ask(
+    local_ip = prompt_valid_ip(
         "[bold green]Local Server Public IP[/] (this server)",
-        default=default_local if default_local else None
+        default=default_local if default_local else None,
+        required=True
     )
     if not local_ip:
-        console.print("[red]Local IP is required[/]")
         return False
     config.local_ip = local_ip
     
-    # Remote IP
-    default_remote = config.remote_ip or ""
+    # Remote IP (with validation)
     if side == "IRAN":
         remote_label = "[bold cyan]Kharej Server Public IP[/]"
     else:
         remote_label = "[bold cyan]Iran Server Public IP[/]"
     
-    remote_ip = Prompt.ask(
+    default_remote = config.remote_ip or ""
+    remote_ip = prompt_valid_ip(
         remote_label,
-        default=default_remote if default_remote else None
+        default=default_remote if default_remote else None,
+        required=True
     )
     if not remote_ip:
-        console.print("[red]Remote IP is required[/]")
         return False
     config.remote_ip = remote_ip
     
-    # Interface IP (auto append /30 subnet)
+    # Interface IP (with validation, auto append /30 subnet)
     console.print(f"\n[dim]Configure tunnel interface IP (for {config.interface_name})[/]")
-    interface_ip = Prompt.ask(
+    interface_ip = prompt_valid_ip(
         "[bold yellow]Interface IP[/]",
-        default=default_interface_ip
+        default=default_interface_ip,
+        required=True
     )
+    if not interface_ip:
+        return False
     # Auto append /30 if not already present
     if "/" not in interface_ip:
         interface_ip = f"{interface_ip}/30"
     config.interface_ip = interface_ip
     
-    # Remote forward target IP (only relevant for Iran)
+    # Remote forward target IP (only relevant for Iran, with validation)
     if side == "IRAN":
-        remote_forward = Prompt.ask(
+        remote_forward = prompt_valid_ip(
             "[bold yellow]Remote Forward Target IP[/]",
-            default=default_remote_forward
+            default=default_remote_forward,
+            required=True
         )
+        if not remote_forward:
+            return False
         config.remote_forward_ip = remote_forward
     else:
         config.remote_forward_ip = default_remote_forward
