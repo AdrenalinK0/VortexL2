@@ -255,6 +255,17 @@ def handle_forwards_menu(manager: ConfigManager):
             subprocess.run("systemctl start vortexl2-forward-daemon", shell=True)
             ui.show_success("Forward daemon started.")
             ui.wait_for_enter()
+        elif choice == "7":
+            # Validate and reload HAProxy
+            ui.show_info("Validating HAProxy configuration and reloading service...")
+            global_manager = ForwardManager(manager)
+            success, msg = global_manager.validate_and_reload()
+            ui.show_output(msg, "HAProxy Validate & Reload")
+            if success:
+                ui.show_success("HAProxy reloaded successfully")
+            else:
+                ui.show_error(msg)
+            ui.wait_for_enter()
 
 
 def handle_logs(manager: ConfigManager):

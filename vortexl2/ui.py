@@ -163,6 +163,7 @@ def show_forwards_menu() -> str:
         ("4", "Restart All Forwards"),
         ("5", "Stop All Forwards"),
         ("6", "Start All Forwards"),
+        ("7", "Validate & Reload HAProxy"),
         ("0", "Back to Main Menu"),
     ]
     

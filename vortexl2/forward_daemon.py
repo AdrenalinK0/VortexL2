@@ -53,22 +53,16 @@ class ForwardDaemon:
             logger.warning("No tunnels configured")
             return
         
-        # Create forward manager for each tunnel
-        tasks = []
-        for tunnel_config in tunnels:
-            if not tunnel_config.is_configured():
-                logger.warning(f"Tunnel '{tunnel_config.name}' not fully configured, skipping")
-                continue
-            
-            if not tunnel_config.forwarded_ports:
-                logger.debug(f"Tunnel '{tunnel_config.name}' has no forwarded ports")
-                continue
-            
-            forward_manager = ForwardManager(tunnel_config)
-            self.forward_managers[tunnel_config.name] = forward_manager
-            
-            logger.info(f"Starting forwards for tunnel '{tunnel_config.name}': {tunnel_config.forwarded_ports}")
-            await forward_manager.start_all_forwards()
+        # Create a single forward manager that manages HAProxy for all tunnels
+        forward_manager = ForwardManager(self.config_manager)
+        self.forward_managers['haproxy_manager'] = forward_manager
+
+        logger.info("Starting HAProxy forwards for all configured tunnels")
+        success, msg = await forward_manager.start_all_forwards()
+        if not success:
+            logger.error(f"Failed to start port forwards: {msg}")
+        else:
+            logger.info(msg)
         
         logger.info("Forward Daemon started successfully")
         
@@ -84,14 +78,11 @@ class ForwardDaemon:
         logger.info("Stopping VortexL2 Forward Daemon")
         self.running = False
         
-        # Stop all forward managers
-        tasks = []
-        for tunnel_name, forward_manager in self.forward_managers.items():
-            logger.info(f"Stopping forwards for tunnel '{tunnel_name}'")
-            tasks.append(forward_manager.stop_all_forwards())
-        
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
+        # Stop the HAProxy manager
+        fm = self.forward_managers.get('haproxy_manager')
+        if fm:
+            logger.info("Stopping HAProxy forwards")
+            await fm.stop_all_forwards()
         
         logger.info("Forward Daemon stopped")
 
