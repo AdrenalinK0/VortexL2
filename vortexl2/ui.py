@@ -166,10 +166,9 @@ def show_forwards_menu(forward_mode: str = "none") -> str:
         ("2", "Remove Port Forwards"),
         ("3", "List Port Forwards"),
         ("4", "Restart All Forwards"),
-        ("5", "Stop All Forwards"),
-        ("6", "Start All Forwards"),
-        ("7", "Validate & Reload"),
-        ("8", f"Change Forward Mode (Current: {mode_label})"),
+        ("5", "Validate & Reload"),
+        ("6", f"Change Forward Mode (Current: {mode_label})"),
+        ("7", "Setup Auto-Restart (Cron)"),
         ("0", "Back to Main Menu"),
     ]
     
