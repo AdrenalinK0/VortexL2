@@ -251,7 +251,7 @@ def handle_forwards_menu(manager: ConfigManager):
         elif choice == "1":
             # Add forwards - require mode selection first
             if current_mode == "none":
-                ui.show_error("Please select a port forward mode first! (Option 8)")
+                ui.show_error("Please select a port forward mode first! (Option 6)")
             else:
                 ports = ui.prompt_ports()
                 if ports:
@@ -313,7 +313,11 @@ def handle_forwards_menu(manager: ConfigManager):
                 if current_mode != "none":
                     ui.show_info("Stopping current forwards...")
                     if forward:
-                        forward.stop_all_forwards()
+                        import asyncio
+                        try:
+                            asyncio.run(forward.stop_all_forwards())
+                        except Exception as e:
+                            ui.show_warning(f"Could not stop forwards gracefully: {e}")
                     subprocess.run("systemctl stop vortexl2-forward-daemon", shell=True)
                 
                 # Set new mode
